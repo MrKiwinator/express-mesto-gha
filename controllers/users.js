@@ -44,12 +44,12 @@ const checkIfUserExist = (req, res, next) => {
   User.findById(userId)
     .then((user) => {
       if (!user) {
-        res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
+        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
       }
       next();
     })
     .catch(() => {
-      res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+      res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
     });
 };
 
