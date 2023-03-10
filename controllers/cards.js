@@ -42,12 +42,8 @@ const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.id)
     .then((card) => {
       if (!card) {
-        if (!card) {
-          res
-            .status(createBadRequestError.statusCode)
-            .send({ message: createBadRequestError.message });
-          return;
-        }
+        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        return;
       }
       res.status(200).send({ card });
     })
