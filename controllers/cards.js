@@ -7,8 +7,10 @@ const { NotFoundError } = require('../utils/errors/not-found');
 const internalError = new InternalError('Произошла ошибка');
 const createBadRequestError = new BadRequestError('Переданы некорректные данные при создании карточки');
 const likeBadRequestError = new BadRequestError('Переданы некорректные данные для постановки / снятия лайка');
+const findBadRequestError = new BadRequestError('Переданы некорректные данные при поиске карточки');
 const notFoundError = new NotFoundError('Передан несуществующий _id карточки');
 
+// Create card
 const createCard = (req, res) => {
   const { name, link } = req.body;
   // hardcode owner (have to update in the future)
@@ -29,6 +31,7 @@ const createCard = (req, res) => {
     });
 };
 
+// Get cards
 const getCards = (req, res) => {
   Card.find({})
     .populate(['owner', 'likes'])
@@ -38,18 +41,31 @@ const getCards = (req, res) => {
     .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
 };
 
+// Check if card exist
+const checkIfCardExist = (req, res, next) => {
+  Card.findById(req.params.id)
+    .then((card) => {
+      if (!card) {
+        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        return;
+      }
+      next();
+    })
+    .catch(() => {
+      res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
+    });
+};
+
+// Delete card
 const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.id)
     .then((card) => {
-      // if (!card) {
-      //   res.status(notFoundError.statusCode).send({ message: notFoundError.message });
-      //   return;
-      // }
       res.status(200).send({ card });
     })
     .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
 };
 
+// Like card
 const likeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
@@ -72,6 +88,7 @@ const likeCard = (req, res) => {
     });
 };
 
+// Dislike card
 const dislikeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
@@ -95,5 +112,5 @@ const dislikeCard = (req, res) => {
 };
 
 module.exports = {
-  createCard, getCards, deleteCard, likeCard, dislikeCard,
+  createCard, getCards, checkIfCardExist, deleteCard, likeCard, dislikeCard,
 };
