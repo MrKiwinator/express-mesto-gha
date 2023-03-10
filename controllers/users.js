@@ -38,7 +38,7 @@ const getUsers = (req, res) => {
 };
 
 // Check if user exist:
-const checkIfUserExist = (req, res) => {
+const checkIfUserExist = (req, res, next) => {
   const userId = req.params.id;
 
   User.findById(userId)
@@ -46,6 +46,7 @@ const checkIfUserExist = (req, res) => {
       if (!user) {
         res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
       }
+      next();
     })
     .catch(() => {
       res.status(notFoundError.statusCode).send({ message: notFoundError.message });
