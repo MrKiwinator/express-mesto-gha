@@ -68,7 +68,15 @@ const updateUserInfo = (req, res) => {
     .then((user) => {
       res.status(200).send(user);
     })
-    .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res
+          .status(createBadRequestError.statusCode)
+          .send({ message: createBadRequestError.message });
+        return;
+      }
+      res.status(internalError.statusCode).send({ message: internalError.message });
+    });
 };
 
 // Update user avatar:

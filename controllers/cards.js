@@ -6,7 +6,7 @@ const { NotFoundError } = require('../utils/errors/not-found');
 // Creating errors:
 const internalError = new InternalError('Произошла ошибка');
 const createBadRequestError = new BadRequestError('Переданы некорректные данные при создании карточки');
-const likeBadRequestError = new BadRequestError('Переданы некорректные данные для постановки/снятии лайка');
+const likeBadRequestError = new BadRequestError('Переданы некорректные данные для постановки / снятия лайка');
 const notFoundError = new NotFoundError('Передан несуществующий _id карточки');
 
 const createCard = (req, res) => {
@@ -41,6 +41,10 @@ const getCards = (req, res) => {
 const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.id)
     .then((card) => {
+      if (!card) {
+        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        return;
+      }
       res.status(200).send({ card });
     })
     .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
@@ -53,15 +57,15 @@ const likeCard = (req, res) => {
     { new: true },
   )
     .then((card) => {
+      if (!card) {
+        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        return;
+      }
       res.status(200).send(card);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         res.status(likeBadRequestError.statusCode).send({ message: likeBadRequestError.message });
-        return;
-      }
-      if (err.name === 'CastError') {
-        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
         return;
       }
       res.status(internalError.statusCode).send({ message: internalError.message });
@@ -75,15 +79,15 @@ const dislikeCard = (req, res) => {
     { new: true },
   )
     .then((card) => {
+      if (!card) {
+        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        return;
+      }
       res.status(200).send(card);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
         res.status(likeBadRequestError.statusCode).send({ message: likeBadRequestError.message });
-        return;
-      }
-      if (err.name === 'CastError') {
-        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
         return;
       }
       res.status(internalError.statusCode).send({ message: internalError.message });
