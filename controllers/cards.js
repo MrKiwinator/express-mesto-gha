@@ -41,10 +41,10 @@ const getCards = (req, res) => {
 const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.id)
     .then((card) => {
-      if (!card) {
-        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
-        return;
-      }
+      // if (!card) {
+      //   res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+      //   return;
+      // }
       res.status(200).send({ card });
     })
     .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));

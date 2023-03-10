@@ -6,6 +6,7 @@ const { NotFoundError } = require('../utils/errors/not-found');
 // Creating errors:
 const internalError = new InternalError('Произошла ошибка');
 const createBadRequestError = new BadRequestError('Переданы некорректные данные при создании пользователя');
+const findBadRequestError = new BadRequestError('Переданы некорректные данные при поиске пользователя');
 const notFoundError = new NotFoundError('Пользователь по указанному _id не найден');
 
 // Create user:
@@ -36,22 +37,30 @@ const getUsers = (req, res) => {
     .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
 };
 
+// Check if user exist:
+const checkIfUserExist = (req, res) => {
+  const userId = req.params.id;
+
+  User.findById(userId)
+    .then((user) => {
+      if (!user) {
+        res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
+      }
+    })
+    .catch(() => {
+      res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+    });
+};
+
 // Get user by ID:
 const getUserById = (req, res) => {
   const userId = req.params.id;
 
   User.findById(userId)
-    .orFail(() => {
-      throw notFoundError;
-    })
     .then((user) => {
       res.status(200).send(user);
     })
-    .catch((err) => {
-      if (err.name === 'NotFound') {
-        res.status(err.statusCode).send({ message: err.message });
-        return;
-      }
+    .catch(() => {
       res.status(internalError.statusCode).send({ message: internalError.message });
     });
 };
@@ -95,5 +104,5 @@ const updateUserAvatar = (req, res) => {
 };
 
 module.exports = {
-  createUser, getUsers, getUserById, updateUserInfo, updateUserAvatar,
+  createUser, getUsers, checkIfUserExist, getUserById, updateUserInfo, updateUserAvatar,
 };
