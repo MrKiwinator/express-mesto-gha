@@ -1,5 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const { NotFoundError } = require('./utils/errors/not-found');
+
+const pageNotFoundError = new NotFoundError('Запрашиваемая страница не найдена');
 
 // creating app
 const app = express();
@@ -29,6 +32,8 @@ app.use('/users', require('./routes/users'));
 
 // Cards
 app.use('/cards', require('./routes/cards'));
+
+app.all('*', (req, res) => res.status(pageNotFoundError.statusCode).send({ message: pageNotFoundError.message }));
 
 app.listen(PORT, () => {
   // Если всё работает, консоль покажет, какой порт приложение слушает

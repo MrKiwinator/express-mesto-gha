@@ -45,6 +45,12 @@ const getUserById = (req, res) => {
       throw notFoundError;
     })
     .then((user) => {
+      if (!user) {
+        res
+          .status(createBadRequestError.statusCode)
+          .send({ message: createBadRequestError.message });
+        return;
+      }
       res.status(200).send(user);
     })
     .catch((err) => {
