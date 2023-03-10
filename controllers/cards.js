@@ -31,7 +31,7 @@ const createCard = (req, res) => {
 
 const getCards = (req, res) => {
   Card.find({})
-    .populate('user')
+    .populate(['owner', 'likes'])
     .then((cards) => {
       res.status(200).send(cards);
     })
