@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const { celebrate, Joi } = require('celebrate');
 const auth = require('./middlewares/auth');
 const { login, createUser } = require('./controllers/users');
 const { NotFoundError } = require('./utils/errors/not-found');
@@ -25,10 +26,22 @@ app.use(express.json());
 // app.use(cookieParser());
 
 // Sign-in:
-app.post('/signin', login);
+app.post('/signin', celebrate({
+  body: {
+    email: Joi.string().email().required(),
+    password: Joi.string().required(),
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+  },
+}), login);
 
 // Create user:
-app.post('/signup', createUser);
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().email().required(),
+    password: Joi.string().required(),
+  }),
+}), createUser);
 
 // Authorization middleware:
 app.use(cookieParser()); // to get token from cookie
