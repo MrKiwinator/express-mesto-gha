@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
-const { celebrate, Joi } = require('celebrate');
+const { celebrate, Joi, errors } = require('celebrate');
 const auth = require('./middlewares/auth');
 const { login, createUser } = require('./controllers/users');
 const { NotFoundError } = require('./utils/errors/not-found');
@@ -57,9 +57,12 @@ app.use('/cards', require('./routes/cards'));
 
 app.all('*', (req, res, next) => next(pageNotFoundError));
 
+app.use(errors());
+
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   res.status(err.statusCode).send({ message: err.message });
+  next();
 });
 
 app.listen(PORT, () => {
