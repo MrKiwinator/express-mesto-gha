@@ -36,8 +36,7 @@ const getCards = (req, res, next) => {
   Card.find({})
     .populate(['owner', 'likes'])
     .then((cards) => {
-      console.log(cards[0].owner._id.toString());
-      res.status(200).send(cards);
+      res.status(200).send({ cards });
     })
     .catch(() => next(internalError));
 };
