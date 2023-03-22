@@ -49,7 +49,6 @@ const login = (req, res, next) => {
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      console.log(user);
       // Generate token:
       const token = jwt.sign(
         { _id: user._id },
