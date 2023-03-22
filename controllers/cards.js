@@ -36,6 +36,7 @@ const getCards = (req, res) => {
   Card.find({})
     .populate(['owner', 'likes'])
     .then((cards) => {
+      console.log(cards[0].owner._id.toString());
       res.status(200).send(cards);
     })
     .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
@@ -53,6 +54,22 @@ const checkIfCardExist = (req, res, next) => {
     })
     .catch(() => {
       res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
+    });
+};
+
+// Check if user is owner of card:
+const checkCardOwner = (req, res, next) => {
+  const userId = req.user._id;
+
+  Card.findById(req.params.id)
+    .then((card) => {
+      if (userId !== card.owner.toString()) {
+        throw new Error('Ты мне не хозяин!');
+      }
+      next();
+    })
+    .catch((err) => {
+      res.status(findBadRequestError.statusCode).send({ message: err.message });
     });
 };
 
@@ -112,5 +129,5 @@ const dislikeCard = (req, res) => {
 };
 
 module.exports = {
-  createCard, getCards, checkIfCardExist, deleteCard, likeCard, dislikeCard,
+  createCard, getCards, checkIfCardExist, checkCardOwner, deleteCard, likeCard, dislikeCard,
 };

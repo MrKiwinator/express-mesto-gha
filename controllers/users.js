@@ -1,40 +1,108 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const { BadRequestError } = require('../utils/errors/bad-request');
 const { InternalError } = require('../utils/errors/internal');
 const { NotFoundError } = require('../utils/errors/not-found');
+const { ConflictError } = require('../utils/errors/conflict');
+const { UnauthorizedError } = require('../utils/errors/unauthorized');
 
 // Creating errors:
-const internalError = new InternalError('Произошла ошибка');
+const internalError = new InternalError();
 const createBadRequestError = new BadRequestError('Переданы некорректные данные при создании пользователя');
 const findBadRequestError = new BadRequestError('Переданы некорректные данные при поиске пользователя');
-const notFoundError = new NotFoundError('Пользователь по указанному _id не найден');
+const userNotFoundError = new NotFoundError('Пользователь по указанному _id не найден');
+const emailConflictError = new ConflictError('Пользователь с таким email уже существует');
+const unauthorizedError = new UnauthorizedError('Неверный логин или пароль');
 
 // Create user:
-const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
+const createUser = (req, res, next) => {
+  const {
+    email, password, name, about, avatar,
+  } = req.body;
 
-  User.create({ name, about, avatar })
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      email, password: hash, name, about, avatar,
+    }))
     .then((user) => {
       res.status(200).send({ user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res
-          .status(createBadRequestError.statusCode)
-          .send({ message: createBadRequestError.message });
+        next(createBadRequestError);
         return;
       }
-      res.status(internalError.statusCode).send({ message: internalError.message });
+
+      if (err.code === 11000) {
+        next(emailConflictError);
+        return;
+      }
+
+      next(internalError);
+    });
+};
+
+// Login:
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      console.log(user);
+      // Generate token:
+      const token = jwt.sign(
+        { _id: user._id },
+        '83c00a96f2901e30ff4ae043acd0e4a9024aca3fd2cddd828b95bc4af003fed9',
+        { expiresIn: '7d' },
+      );
+      res
+        .cookie('jwt', token, {
+          httpOnly: true,
+        })
+        .end();
+    })
+    .catch(() => next(unauthorizedError));
+};
+
+// Get current user:
+const getCurrentUser = (req, res, next) => {
+  const userId = req.user._id;
+
+  User.findById(userId)
+    .then((user) => {
+      if (user) {
+        res.status(200).send({ user });
+        return;
+      }
+
+      next(userNotFoundError);
+    })
+    .catch(() => {
+      next(internalError);
+    });
+};
+
+// Get user by ID:
+const getUserById = (req, res, next) => {
+  const userId = req.params.id;
+
+  User.findById(userId)
+    .then((user) => {
+      res.status(200).send(user);
+    })
+    .catch(() => {
+      next(internalError);
     });
 };
 
 // Get users:
-const getUsers = (req, res) => {
+const getUsers = (req, res, next) => {
   User.find({})
     .then((users) => {
       res.status(200).send(users);
     })
-    .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
+    .catch(() => next(internalError));
 };
 
 // Check if user exist:
@@ -44,30 +112,18 @@ const checkIfUserExist = (req, res, next) => {
   User.findById(userId)
     .then((user) => {
       if (!user) {
-        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        next(userNotFoundError);
+        return;
       }
       next();
     })
     .catch(() => {
-      res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
-    });
-};
-
-// Get user by ID:
-const getUserById = (req, res) => {
-  const userId = req.params.id;
-
-  User.findById(userId)
-    .then((user) => {
-      res.status(200).send(user);
-    })
-    .catch(() => {
-      res.status(internalError.statusCode).send({ message: internalError.message });
+      next(findBadRequestError);
     });
 };
 
 // Update user info:
-const updateUserInfo = (req, res) => {
+const updateUserInfo = (req, res, next) => {
   const { name, about } = req.body;
 
   User.findByIdAndUpdate(
@@ -80,17 +136,15 @@ const updateUserInfo = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res
-          .status(createBadRequestError.statusCode)
-          .send({ message: createBadRequestError.message });
+        next(createBadRequestError);
         return;
       }
-      res.status(internalError.statusCode).send({ message: internalError.message });
+      next(internalError);
     });
 };
 
 // Update user avatar:
-const updateUserAvatar = (req, res) => {
+const updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
   User.findByIdAndUpdate(
@@ -101,9 +155,16 @@ const updateUserAvatar = (req, res) => {
     .then((user) => {
       res.status(200).send(user);
     })
-    .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
+    .catch(() => next(internalError));
 };
 
 module.exports = {
-  createUser, getUsers, checkIfUserExist, getUserById, updateUserInfo, updateUserAvatar,
+  createUser,
+  login,
+  getCurrentUser,
+  getUsers,
+  checkIfUserExist,
+  getUserById,
+  updateUserInfo,
+  updateUserAvatar,
 };

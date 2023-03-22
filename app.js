@@ -1,5 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
+const auth = require('./middlewares/auth');
+const { login, createUser } = require('./controllers/users');
 const { NotFoundError } = require('./utils/errors/not-found');
 
 const pageNotFoundError = new NotFoundError('Запрашиваемая страница не найдена');
@@ -19,13 +22,19 @@ mongoose.connect('mongodb://127.0.0.1:27017/mestodb', {
 
 app.use(express.json());
 
-app.use((req, res, next) => {
-  req.user = {
-    _id: '6409c58de4a29423bdc63a75',
-  };
+// app.use(cookieParser());
 
-  next();
-});
+// Sign-in:
+app.post('/signin', login);
+
+// Create user:
+app.post('/signup', createUser);
+
+// Authorization middleware:
+app.use(cookieParser()); // to get token from cookie
+app.use(auth);
+
+// Routes below are available only after authorization (!)
 
 // Users:
 app.use('/users', require('./routes/users'));
@@ -33,7 +42,12 @@ app.use('/users', require('./routes/users'));
 // Cards
 app.use('/cards', require('./routes/cards'));
 
-app.all('*', (req, res) => res.status(pageNotFoundError.statusCode).send({ message: pageNotFoundError.message }));
+app.all('*', (req, res, next) => next(pageNotFoundError));
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  res.status(err.statusCode).send({ message: err.message });
+});
 
 app.listen(PORT, () => {
   // Если всё работает, консоль покажет, какой порт приложение слушает
