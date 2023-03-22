@@ -12,15 +12,16 @@ router.post('/', celebrate({
 }), createCard);
 router.get('/', getCards);
 
-router.delete('/:id', celebrate({
+router.use('/:id', celebrate({
   params: Joi.object().keys({
     id: Joi.string().required().length(24).hex(),
   }),
 }), checkIfCardExist);
+
 router.delete('/:id', checkCardOwner);
 router.delete('/:id', deleteCard);
 
-router.put('/:cardId/likes', likeCard);
-router.delete('/:cardId/likes', dislikeCard);
+router.put('/:id/likes', likeCard);
+router.delete('/:id/likes', dislikeCard);
 
 module.exports = router;
