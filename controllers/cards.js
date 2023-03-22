@@ -2,6 +2,7 @@ const Card = require('../models/card');
 const { BadRequestError } = require('../utils/errors/bad-request');
 const { InternalError } = require('../utils/errors/internal');
 const { NotFoundError } = require('../utils/errors/not-found');
+const { ForbiddenError } = require('../utils/errors/forbidden');
 
 // Creating errors:
 const internalError = new InternalError('Произошла ошибка');
@@ -9,9 +10,10 @@ const createBadRequestError = new BadRequestError('Переданы некорр
 const likeBadRequestError = new BadRequestError('Переданы некорректные данные для постановки / снятия лайка');
 const findBadRequestError = new BadRequestError('Переданы некорректные данные при поиске карточки');
 const notFoundError = new NotFoundError('Передан несуществующий _id карточки');
+const cardForbiddenError = new ForbiddenError('Нет доступа к запрашиваемой карточке');
 
 // Create card
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
   // hardcode owner (have to update in the future)
   const owner = req.user._id;
@@ -22,24 +24,22 @@ const createCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res
-          .status(createBadRequestError.statusCode)
-          .send({ message: createBadRequestError.message });
+        next(createBadRequestError);
         return;
       }
-      res.status(internalError.statusCode).send({ message: internalError.message });
+      next(internalError);
     });
 };
 
 // Get cards
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
     .populate(['owner', 'likes'])
     .then((cards) => {
       console.log(cards[0].owner._id.toString());
       res.status(200).send(cards);
     })
-    .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
+    .catch(() => next(internalError));
 };
 
 // Check if card exist
@@ -47,13 +47,13 @@ const checkIfCardExist = (req, res, next) => {
   Card.findById(req.params.id)
     .then((card) => {
       if (!card) {
-        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        next(notFoundError);
         return;
       }
       next();
     })
     .catch(() => {
-      res.status(findBadRequestError.statusCode).send({ message: findBadRequestError.message });
+      next(findBadRequestError);
     });
 };
 
@@ -64,26 +64,26 @@ const checkCardOwner = (req, res, next) => {
   Card.findById(req.params.id)
     .then((card) => {
       if (userId !== card.owner.toString()) {
-        throw new Error('Ты мне не хозяин!');
+        next(cardForbiddenError);
       }
       next();
     })
-    .catch((err) => {
-      res.status(findBadRequestError.statusCode).send({ message: err.message });
+    .catch(() => {
+      next(findBadRequestError);
     });
 };
 
 // Delete card
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   Card.findByIdAndRemove(req.params.id)
     .then((card) => {
       res.status(200).send({ card });
     })
-    .catch(() => res.status(internalError.statusCode).send({ message: internalError.message }));
+    .catch(() => next(internalError));
 };
 
 // Like card
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -91,22 +91,22 @@ const likeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        next(notFoundError);
         return;
       }
       res.status(200).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        res.status(likeBadRequestError.statusCode).send({ message: likeBadRequestError.message });
+        next(likeBadRequestError);
         return;
       }
-      res.status(internalError.statusCode).send({ message: internalError.message });
+      next(internalError);
     });
 };
 
 // Dislike card
-const dislikeCard = (req, res) => {
+const dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -114,17 +114,17 @@ const dislikeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(notFoundError.statusCode).send({ message: notFoundError.message });
+        next(notFoundError);
         return;
       }
       res.status(200).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        res.status(likeBadRequestError.statusCode).send({ message: likeBadRequestError.message });
+        next(likeBadRequestError);
         return;
       }
-      res.status(internalError.statusCode).send({ message: internalError.message });
+      next(internalError);
     });
 };
 
