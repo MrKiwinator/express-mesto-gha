@@ -26,7 +26,12 @@ const createUser = (req, res, next) => {
       email, password: hash, name, about, avatar,
     }))
     .then((user) => {
-      res.status(200).send({ user });
+      res.status(200).send({
+        email: user.email,
+        name: user.name,
+        about: user.about,
+        avatar: user.avatar,
+      });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -59,6 +64,7 @@ const login = (req, res, next) => {
         .cookie('jwt', token, {
           httpOnly: true,
         })
+        .send({ token })
         .end();
     })
     .catch(() => next(unauthorizedError));

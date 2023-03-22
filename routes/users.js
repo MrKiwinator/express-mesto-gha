@@ -16,11 +16,15 @@ router.patch('/me', celebrate({
 
 router.patch('/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().required().uri(({ scheme: [/^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w.-]+)+[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/i] })),
+    avatar: Joi.string().required().uri(({ scheme: ['http', 'https'] })),
   }),
 }), updateUserAvatar);
 
-router.get('/:id', checkIfUserExist);
+router.get('/:id', celebrate({
+  params: Joi.object().keys({
+    userId: Joi.string().required().length(24).hex(),
+  }),
+}), checkIfUserExist);
 router.get('/:id', getUserById);
 
 module.exports = router;
