@@ -20,11 +20,12 @@ router.patch('/me/avatar', celebrate({
   }),
 }), updateUserAvatar);
 
-router.get('/:id', celebrate({
+router.use('/:id', celebrate({
   params: Joi.object().keys({
     id: Joi.string().required().length(24).hex(),
   }),
 }), checkIfUserExist);
+
 router.get('/:id', getUserById);
 
 module.exports = router;
