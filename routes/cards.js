@@ -19,8 +19,14 @@ router.get('/', getCards);
 // }), checkIfCardExist);
 
 // router.delete('/:id', checkCardOwner);
-router.delete('/:id', deleteCard);
 
+router.use('/:id', celebrate({
+  params: Joi.object().keys({
+    id: Joi.string().required().length(24).hex(),
+  }),
+}));
+
+router.delete('/:id', deleteCard);
 router.put('/:id/likes', likeCard);
 router.delete('/:id/likes', dislikeCard);
 

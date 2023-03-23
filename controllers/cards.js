@@ -8,12 +8,14 @@ const { ForbiddenError } = require('../utils/errors/forbidden');
 const internalError = new InternalError('Произошла ошибка');
 const createBadRequestError = new BadRequestError('Переданы некорректные данные при создании карточки');
 const likeBadRequestError = new BadRequestError('Переданы некорректные данные для постановки / снятия лайка');
+const findBadRequestError = new BadRequestError('Переданы некорректные данные при поиске карточки');
 const notFoundError = new NotFoundError('Передан несуществующий _id карточки');
 const cardForbiddenError = new ForbiddenError('Нет доступа к запрашиваемой карточке');
 
 // Create card
 const createCard = (req, res, next) => {
   const { name, link } = req.body;
+
   const owner = req.user._id;
 
   Card.create({ name, link, owner })
@@ -43,26 +45,30 @@ const getCards = (req, res, next) => {
 const deleteCard = (req, res, next) => {
   const userId = req.user._id;
 
-  Card.findById(req.params.id)
-    .then((card) => {
-      // Check if card exist:
-      if (!card) {
-        next(notFoundError);
-        return;
-      }
-      // Check if user is owner of card:
-      if (userId !== card.owner.toString()) {
-        next(cardForbiddenError);
-        return;
-      }
-      // If card exist and user it's owner - delete card:
-      Card.findByIdAndRemove(req.params.id)
-        .then((c) => {
-          res.status(200).send({ c });
-        })
-        .catch(() => next(internalError));
-    })
-    .catch(() => next(internalError));
+  try {
+    Card.findById(req.params.id)
+      .then((card) => {
+        // Check if card exist:
+        if (!card) {
+          next(notFoundError);
+          return;
+        }
+        // Check if user is owner of card:
+        if (userId !== card.owner.toString()) {
+          next(cardForbiddenError);
+          return;
+        }
+        // If card exist and user it's owner - delete card:
+        Card.findByIdAndRemove(req.params.id)
+          .then((c) => {
+            res.status(200).send({ c });
+          })
+          .catch(() => next(internalError));
+      })
+      .catch(() => next(findBadRequestError));
+  } catch {
+    next(internalError);
+  }
 };
 
 // Like card
@@ -98,12 +104,10 @@ const dislikeCard = (req, res, next) => {
     { new: true },
   )
     .then((card) => {
-      // Check if card exist:
       if (!card) {
         next(notFoundError);
         return;
       }
-      // Return disliked card to user:
       res.status(200).send(card);
     })
     .catch((err) => {
