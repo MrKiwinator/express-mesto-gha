@@ -12,14 +12,6 @@ router.post('/', celebrate({
 }), createCard);
 router.get('/', getCards);
 
-// router.use('/:id', celebrate({
-//   params: Joi.object().keys({
-//     id: Joi.string().required().length(24).hex(),
-//   }),
-// }), checkIfCardExist);
-
-// router.delete('/:id', checkCardOwner);
-
 router.use('/:id', celebrate({
   params: Joi.object().keys({
     id: Joi.string().required().length(24).hex(),

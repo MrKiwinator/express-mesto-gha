@@ -34,7 +34,8 @@ const createCard = (req, res, next) => {
 // Get cards
 const getCards = (req, res, next) => {
   Card.find({})
-    .populate(['owner', 'likes'])
+    // Uncomment if will be required to get additional info:
+    // .populate(['owner', 'likes'])
     .then((cards) => {
       res.status(200).send({ cards });
     })
