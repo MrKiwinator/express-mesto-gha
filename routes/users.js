@@ -20,12 +20,6 @@ router.patch('/me/avatar', celebrate({
   }),
 }), updateUserAvatar);
 
-// router.use('/:id', celebrate({
-//   params: Joi.object().keys({
-//     id: Joi.string().required().length(24).hex(),
-//   }),
-// }), checkIfUserExist);
-
 router.get('/:id', celebrate({
   params: Joi.object().keys({
     id: Joi.string().required().length(24).hex(),

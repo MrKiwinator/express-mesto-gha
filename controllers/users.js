@@ -74,23 +74,6 @@ const login = (req, res, next) => {
   }
 };
 
-// Check if user exist:
-// const checkIfUserExist = (req, res, next) => {
-//   const userId = req.params.id;
-
-//   User.findById(userId)
-//     .then((user) => {
-//       if (!user) {
-//         next(userNotFoundError);
-//         return;
-//       }
-//       next();
-//     })
-//     .catch(() => {
-//       next(findBadRequestError);
-//     });
-// };
-
 // Get current user:
 const getCurrentUser = (req, res, next) => {
   const userId = req.user._id;
