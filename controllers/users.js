@@ -52,23 +52,44 @@ const createUser = (req, res, next) => {
 const login = (req, res, next) => {
   const { email, password } = req.body;
 
-  return User.findUserByCredentials(email, password)
-    .then((user) => {
-      // Generate token:
-      const token = jwt.sign(
-        { _id: user._id },
-        '83c00a96f2901e30ff4ae043acd0e4a9024aca3fd2cddd828b95bc4af003fed9',
-        { expiresIn: '7d' },
-      );
-      res
-        .cookie('jwt', token, {
-          httpOnly: true,
-        })
-        .send({ token })
-        .end();
-    })
-    .catch(() => next(unauthorizedError));
+  try {
+    User.findUserByCredentials(email, password)
+      .then((user) => {
+        // Generate token:
+        const token = jwt.sign(
+          { _id: user._id },
+          '83c00a96f2901e30ff4ae043acd0e4a9024aca3fd2cddd828b95bc4af003fed9',
+          { expiresIn: '7d' },
+        );
+        res
+          .cookie('jwt', token, {
+            httpOnly: true,
+          })
+          .send({ token })
+          .end();
+      })
+      .catch(() => next(unauthorizedError));
+  } catch {
+    next(internalError);
+  }
 };
+
+// Check if user exist:
+// const checkIfUserExist = (req, res, next) => {
+//   const userId = req.params.id;
+
+//   User.findById(userId)
+//     .then((user) => {
+//       if (!user) {
+//         next(userNotFoundError);
+//         return;
+//       }
+//       next();
+//     })
+//     .catch(() => {
+//       next(findBadRequestError);
+//     });
+// };
 
 // Get current user:
 const getCurrentUser = (req, res, next) => {
@@ -76,12 +97,12 @@ const getCurrentUser = (req, res, next) => {
 
   User.findById(userId)
     .then((user) => {
-      if (user) {
-        res.status(200).send({ user });
+      // Check if user exist:
+      if (!user) {
+        next(userNotFoundError);
         return;
       }
-
-      next(userNotFoundError);
+      res.status(200).send({ user });
     })
     .catch(() => {
       next(internalError);
@@ -92,13 +113,22 @@ const getCurrentUser = (req, res, next) => {
 const getUserById = (req, res, next) => {
   const userId = req.params.id;
 
-  User.findById(userId)
-    .then((user) => {
-      res.status(200).send(user);
-    })
-    .catch(() => {
-      next(internalError);
-    });
+  try {
+    User.findById(userId)
+      .then((user) => {
+        // Check if user exist:
+        if (!user) {
+          next(userNotFoundError);
+          return;
+        }
+        res.status(200).send(user);
+      })
+      .catch(() => {
+        next(findBadRequestError);
+      });
+  } catch {
+    next(internalError);
+  }
 };
 
 // Get users:
@@ -108,23 +138,6 @@ const getUsers = (req, res, next) => {
       res.status(200).send(users);
     })
     .catch(() => next(internalError));
-};
-
-// Check if user exist:
-const checkIfUserExist = (req, res, next) => {
-  const userId = req.params.id;
-
-  User.findById(userId)
-    .then((user) => {
-      if (!user) {
-        next(userNotFoundError);
-        return;
-      }
-      next();
-    })
-    .catch(() => {
-      next(findBadRequestError);
-    });
 };
 
 // Update user info:
@@ -160,7 +173,13 @@ const updateUserAvatar = (req, res, next) => {
     .then((user) => {
       res.status(200).send(user);
     })
-    .catch(() => next(internalError));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(createBadRequestError);
+        return;
+      }
+      next(internalError);
+    });
 };
 
 module.exports = {
@@ -168,7 +187,6 @@ module.exports = {
   login,
   getCurrentUser,
   getUsers,
-  checkIfUserExist,
   getUserById,
   updateUserInfo,
   updateUserAvatar,
