@@ -46,30 +46,32 @@ const getCards = (req, res, next) => {
 const deleteCard = (req, res, next) => {
   const userId = req.user._id;
 
-  try {
-    Card.findById(req.params.id)
-      .then((card) => {
-        // Check if card exist:
-        if (!card) {
-          next(notFoundError);
-          return;
-        }
-        // Check if user is owner of card:
-        if (userId !== card.owner.toString()) {
-          next(cardForbiddenError);
-          return;
-        }
-        // If card exist and user it's owner - delete card:
-        Card.findByIdAndRemove(req.params.id)
-          .then((c) => {
-            res.status(200).send({ c });
-          })
-          .catch(() => next(internalError));
-      })
-      .catch(() => next(findBadRequestError));
-  } catch {
-    next(internalError);
-  }
+  Card.findById(req.params.id)
+    .then((card) => {
+      // Check if card exist:
+      if (!card) {
+        next(notFoundError);
+        return;
+      }
+      // Check if user is owner of card:
+      if (userId !== card.owner.toString()) {
+        next(cardForbiddenError);
+        return;
+      }
+      // If card exist and user it's owner - delete card:
+      Card.findByIdAndRemove(req.params.id)
+        .then((c) => {
+          res.status(200).send({ c });
+        })
+        .catch(() => next(internalError));
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(findBadRequestError);
+        return;
+      }
+      next(internalError);
+    });
 };
 
 // Like card
